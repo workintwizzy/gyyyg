@@ -1,0 +1,70 @@
+{
+  "runtimeErrors": [],
+  "interactions": "passed",
+  "layout": [
+    {
+      "viewport": 360,
+      "view": "home",
+      "width": 328,
+      "overflow": false,
+      "font": "GolosPreview, \"Segoe UI\", sans-serif",
+      "weight": "500"
+    },
+    {
+      "viewport": 360,
+      "view": "journal",
+      "width": 328,
+      "overflow": false,
+      "font": "GolosPreview, \"Segoe UI\", sans-serif",
+      "weight": "500"
+    },
+    {
+      "viewport": 360,
+      "view": "active",
+      "width": 328,
+      "overflow": false,
+      "font": "GolosPreview, \"Segoe UI\", sans-serif",
+      "weight": "500"
+    },
+    {
+      "viewport": 360,
+      "view": "coach",
+      "width": 328,
+      "overflow": false,
+      "font": "GolosPreview, \"Segoe UI\", sans-serif",
+      "weight": "500"
+    },
+    {
+      "viewport": 412,
+      "view": "home",
+      "width": 380,
+      "overflow": false,
+      "font": "GolosPreview, \"Segoe UI\", sans-serif",
+      "weight": "500"
+    },
+    {
+      "viewport": 412,
+      "view": "journal",
+      "width": 380,
+      "overflow": false,
+      "font": "GolosPreview, \"Segoe UI\", sans-serif",
+      "weight": "500"
+    },
+    {
+      "viewport": 412,
+      "view": "active",
+      "width": 380,
+      "overflow": false,
+      "font": "GolosPreview, \"Segoe UI\", sans-serif",
+      "weight": "500"
+    },
+    {
+      "viewport": 412,
+      "view": "coach",
+      "width": 380,
+      "overflow": false,
+      "font": "GolosPreview, \"Segoe UI\", sans-serif",
+      "weight": "500"
+    }
+  ]
+}

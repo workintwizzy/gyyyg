@@ -1,0 +1,7 @@
+packages:
+  - .
+storeDir: .pnpm-store
+nodeLinker: hoisted
+verifyDepsBeforeRun: false
+allowBuilds:
+  esbuild: true

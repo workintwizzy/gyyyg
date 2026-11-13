@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="18" failures="0" errors="0" skipped="0" time="87.632" timestamp="2026-11-13T04:44:18" hostname="localhost">
+  <testsuite name="ru.dmitriy.workouts.CoachUiTest" tests="3" failures="0" errors="0" skipped="0" time="49.873" timestamp="2026-11-13T04:44:18" hostname="localhost">
+    <properties>
+      <property name="device" value="Pixel_8(AVD) - 17" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="applyFromConversationKeepsRecordedWarmupAndWorkingSets" classname="ru.dmitriy.workouts.CoachUiTest" time="24.895" />
+    <testcase name="recordingAnotherSetMakesVisibleProposalStaleAndRemovesApply" classname="ru.dmitriy.workouts.CoachUiTest" time="14.38" />
+    <testcase name="leaveAsIsFromConversationKeepsAssignmentAndRecords" classname="ru.dmitriy.workouts.CoachUiTest" time="10.598" />
+  </testsuite>
+  <testsuite name="ru.dmitriy.workouts.WorkoutFlowUiTest" tests="4" failures="0" errors="0" skipped="0" time="32.078" timestamp="2026-11-13T04:44:18" hostname="localhost">
+    <properties>
+      <property name="device" value="Pixel_8(AVD) - 17" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="rejectedProposalKeepsOriginalAssignment" classname="ru.dmitriy.workouts.WorkoutFlowUiTest" time="9.056" />
+    <testcase name="requestCompareConfirmAndSeeUpdatedSession" classname="ru.dmitriy.workouts.WorkoutFlowUiTest" time="5.023" />
+    <testcase name="startRecordFinishAndOpenHistory" classname="ru.dmitriy.workouts.WorkoutFlowUiTest" time="14.004" />
+    <testcase name="staleProposalCannotApplyAndKeepsOriginalAssignment" classname="ru.dmitriy.workouts.WorkoutFlowUiTest" time="3.995" />
+  </testsuite>
+  <testsuite name="ru.dmitriy.workouts.data.AiConnectionTest" tests="3" failures="0" errors="0" skipped="0" time="1.821" timestamp="2026-11-13T04:44:18" hostname="localhost">
+    <properties>
+      <property name="device" value="Pixel_8(AVD) - 17" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="questionAcknowledgementFollowsRoomCommitForChatAndProposal" classname="ru.dmitriy.workouts.data.AiConnectionTest" time="1.22" />
+    <testcase name="personalKeyEncryptedAndRemovalDoesNotAffectWorkout" classname="ru.dmitriy.workouts.data.AiConnectionTest" time="0.248" />
+    <testcase name="leavingDialogueDuringPreparationKeepsQuestionAndHidesOldStatus" classname="ru.dmitriy.workouts.data.AiConnectionTest" time="0.353" />
+  </testsuite>
+  <testsuite name="ru.dmitriy.workouts.data.WorkoutRoomTest" tests="8" failures="0" errors="0" skipped="0" time="1.519" timestamp="2026-11-13T04:44:18" hostname="localhost">
+    <properties>
+      <property name="device" value="Pixel_8(AVD) - 17" />
+      <property name="flavor" value="" />
+      <property name="project" value=":app" />
+    </properties>
+    <testcase name="stageCannotSkipUnfinishedWeekAndEquipmentNeverCarriesWeight" classname="ru.dmitriy.workouts.data.WorkoutRoomTest" time="0.186" />
+    <testcase name="warmupSeparateFromWorkAndSeedIdempotent" classname="ru.dmitriy.workouts.data.WorkoutRoomTest" time="0.134" />
+    <testcase name="proposalApplicationIsAtomicIdempotentAndRollbackVersioned" classname="ru.dmitriy.workouts.data.WorkoutRoomTest" time="0.17" />
+    <testcase name="rollbackCannotOverwriteLaterManualWorkAndStaleApplyDoesNothing" classname="ru.dmitriy.workouts.data.WorkoutRoomTest" time="0.325" />
+    <testcase name="templatesAndManualCorrectionPreserveSnapshot" classname="ru.dmitriy.workouts.data.WorkoutRoomTest" time="0.187" />
+    <testcase name="restDefaultsChangeWithoutRewritingRecordedSetsOrAssignment" classname="ru.dmitriy.workouts.data.WorkoutRoomTest" time="0.125" />
+    <testcase name="startSaveRestoreUndoAndPartialFinish" classname="ru.dmitriy.workouts.data.WorkoutRoomTest" time="0.221" />
+    <testcase name="rejectedProposalAndBrokenImportPreserveDatabase" classname="ru.dmitriy.workouts.data.WorkoutRoomTest" time="0.171" />
+  </testsuite>
+</testsuites>

@@ -1,0 +1,287 @@
+openapi: 3.1.0
+info:
+  title: Тренировки — личный ИИ-сервер
+  version: 1.0.0
+  description: >-
+    Журнал и диалоги хранятся только на телефоне. Сервер принимает ограниченный снимок,
+    передаёт DeepSeek и держит ответы для идемпотентности максимум 10 минут в памяти.
+    HTTP разрешён только для loopback-разработки, публикация только за HTTPS reverse proxy.
+servers:
+  - url: https://coach.example.com
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      security: []
+      summary: Работоспособность, модель и наличие ключа (сам ключ не возвращается)
+      responses:
+        '200':
+          description: Сервер запущен, AI может быть не настроен
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, provider, aiConfigured, model]
+                properties:
+                  status: {const: ok}
+                  provider: {const: deepseek}
+                  aiConfigured: {type: boolean}
+                  model: {type: string}
+  /v1/pair:
+    post:
+      security: []
+      summary: Обмен одноразового кода владельца на сессию
+      description: Код создаётся CLI, 10 случайных символов, 5 минут, один обмен. Не более 10 попыток за 10 минут/IP по умолчанию.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [code, deviceName]
+              properties:
+                code: {type: string, pattern: '^[A-Z2-9]{10}$'}
+                deviceName: {type: string, minLength: 1, maxLength: 80}
+      responses:
+        '200': {$ref: '#/components/responses/Tokens'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+  /v1/session/refresh:
+    post:
+      security: []
+      summary: Ротация refresh-токена и выдача нового access-токена
+      description: Старый refresh и access немедленно недействительны. Абсолютный срок refresh 30 дней с первого подключения, не продлевается ротацией.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [refreshToken]
+              properties:
+                refreshToken: {type: string, minLength: 32, maxLength: 256}
+      responses:
+        '200': {$ref: '#/components/responses/Tokens'}
+        '401': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+  /v1/session/revoke:
+    post:
+      security:
+        - bearerAuth: []
+        - {}
+      summary: Отозвать текущую сессию
+      description: >-
+        С body.refreshToken сам refresh подтверждает отзыв даже при истёкшем access.
+        Повторный отзыв идемпотентен (200). Без тела требуется действительный Bearer access.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [refreshToken]
+              properties:
+                refreshToken: {type: string, minLength: 32, maxLength: 256}
+      responses:
+        '200':
+          description: Access и refresh отозваны
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [revoked]
+                properties:
+                  revoked: {const: true}
+        '401': {$ref: '#/components/responses/Error'}
+  /v1/chat:
+    post:
+      summary: Контекстный потоковый чат
+      description: >-
+        SSE POST, авторизация Bearer. События delta {text}, done {usage?}, error {code,message}.
+        Только done означает полный ответ. При EOF до done клиент сохраняет ошибку/отмену,
+        частичный текст не считается завершённым. Закрытие соединения отменяет fetch провайдера.
+        Повтор requestId не запускает второй платный поток (409). Идентификатор и кэш живут 10 минут,
+        исчезают при перезапуске сервера. Для явного повтора после ошибки нужен новый requestId.
+      requestBody: {$ref: '#/components/requestBodies/AiRequest'}
+      responses:
+        '200':
+          description: SSE поток с конечным событием done или error
+          content:
+            text/event-stream:
+              schema: {type: string}
+              example: "event: delta\ndata: {\"text\":\"Короткий ответ\"}\n\nevent: done\ndata: {\"usage\":{\"total_tokens\":123}}\n\n"
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '413': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+  /v1/insights/workout:
+    post:
+      summary: Разбор сохранённого занятия
+      description: Только по явному действию. Контекст содержит рассчитанные клиентом факты, сопоставимые результаты и evidenceIds.
+      requestBody: {$ref: '#/components/requestBodies/AiRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/Insight'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+        '502': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+        '504': {$ref: '#/components/responses/Error'}
+  /v1/insights/period:
+    post:
+      summary: Разбор последних четырёх недель (максимум 12 завершённых занятий в снимке)
+      requestBody: {$ref: '#/components/requestBodies/AiRequest'}
+      responses:
+        '200': {$ref: '#/components/responses/Insight'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+        '502': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+        '504': {$ref: '#/components/responses/Error'}
+  /v1/proposals:
+    post:
+      summary: Структурированное предложение изменения (без применения)
+      description: >-
+        Сервер проверяет JSON/Zod и допустимые ID. Android повторно проверяет бизнес-правила,
+        версию, выполненные подходы, прогрессию; показывает Было → Станет; применяет транзакционно
+        только после явного подтверждения. Server не имеет доступа к Room и не применяет операции.
+        context.expectedVersion (или version), context.scope и exerciseIds обязательны для предложения.
+      requestBody: {$ref: '#/components/requestBodies/AiRequest'}
+      responses:
+        '200':
+          description: Кандидат на изменение
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Proposal'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+        '502': {$ref: '#/components/responses/Error'}
+        '503': {$ref: '#/components/responses/Error'}
+        '504': {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: opaque}
+  requestBodies:
+    AiRequest:
+      required: true
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/AiRequest'}
+  responses:
+    Tokens:
+      description: Секреты сессии, хранить через Android Keystore; expiresAt — epoch milliseconds
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [accessToken, refreshToken, expiresAt]
+            properties:
+              accessToken: {type: string}
+              refreshToken: {type: string}
+              expiresAt: {type: integer, format: int64}
+    Insight:
+      description: Проверенный структурированный разбор
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [text, evidenceIds, sourceIds]
+            properties:
+              text: {type: string, minLength: 1, maxLength: 12000}
+              evidenceIds: {type: array, maxItems: 30, items: {type: string}}
+              sourceIds: {type: array, maxItems: 20, items: {type: string}}
+              usage: {$ref: '#/components/schemas/Usage'}
+    Error:
+      description: >-
+        Коды INVALID_REQUEST, INVALID_CONTEXT, PRIVATE_FIELD, INVALID_PAIR_CODE, SESSION_INVALID,
+        RATE_LIMIT, REQUEST_ALREADY_SENT, IDEMPOTENCY_CONFLICT, AI_NOT_CONFIGURED, PROVIDER_ERROR,
+        PROVIDER_UNAVAILABLE, PROVIDER_RATE_LIMIT, PROVIDER_TIMEOUT, INVALID_PROVIDER_RESPONSE,
+        CONTEXT_TOO_LARGE, HTTPS_REQUIRED. Без запросов, заметок, ключей и токенов.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error, requestId]
+            properties:
+              error:
+                type: object
+                required: [code, message]
+                properties:
+                  code: {type: string}
+                  message: {type: string}
+              requestId: {type: string}
+  schemas:
+    Usage:
+      type: object
+      description: Только фактические значения провайдера. Отсутствуют, если провайдер их не вернул; стоимость не вычисляется.
+      properties:
+        prompt_tokens: {type: integer, minimum: 0}
+        completion_tokens: {type: integer, minimum: 0}
+        total_tokens: {type: integer, minimum: 0}
+    AiRequest:
+      type: object
+      additionalProperties: false
+      required: [requestId, context, prompt, fingerprint]
+      properties:
+        requestId: {type: string, format: uuid}
+        fingerprint: {type: string, minLength: 1, maxLength: 128}
+        prompt: {type: string, minLength: 1, maxLength: 3000}
+        context:
+          type: object
+          additionalProperties: true
+          description: >-
+            Ограниченный выбранный снимок, не вся база. До MAX_CONTEXT_BYTES (65536), глубина до 12,
+            массив до 200 элементов. Запрещены поля секретов, токенов и контактов. Ссылки выбираются
+            по sourceIds, фактические записи по evidenceIds; для proposals exerciseIds ограничивает ID.
+            Числовые суммы рассчитывает клиент. Заметки только с отдельным согласием.
+        messages:
+          type: array
+          default: []
+          maxItems: 8
+          items:
+            type: object
+            additionalProperties: false
+            required: [role, content]
+            properties:
+              role: {type: string, enum: [user, assistant]}
+              content: {type: string, minLength: 1, maxLength: 3000}
+    Operation:
+      type: object
+      additionalProperties: false
+      required: [type, exerciseId, previous, value]
+      properties:
+        type: {type: string, enum: [reorder, replace, reduceSets, weight, reps, rest, stage, schedule]}
+        exerciseId: {type: string, minLength: 1, maxLength: 100}
+        previous: {type: string, maxLength: 500}
+        value: {type: string, minLength: 1, maxLength: 500}
+      description: >-
+        previous/value строки: reduceSets — число рабочих подходов; weight — граммы;
+        reps — диапазон min-max (например 8-12); rest — секунды; stage — номер этапа;
+        schedule — ISO дни 1..7 через запятую; reorder — упорядоченные ID через запятую;
+        replace — ID упражнения (previous — исходный ID); weight.previous при пустой цели — строка null. Android является владельцем бизнес-правил и допустимых диапазонов.
+    Proposal:
+      type: object
+      required: [proposalId, summary, reason, evidenceIds, expectedVersion, scope, expiresAt, operations, status]
+      properties:
+        proposalId: {type: string, format: uuid}
+        summary: {type: string, minLength: 1, maxLength: 500}
+        reason: {type: string, minLength: 1, maxLength: 1500}
+        evidenceIds: {type: array, maxItems: 30, items: {type: string}}
+        expectedVersion: {type: integer, minimum: 0}
+        scope: {type: string, enum: [session, program]}
+        expiresAt: {type: integer, format: int64}
+        operations: {type: array, minItems: 1, maxItems: 12, items: {$ref: '#/components/schemas/Operation'}}
+        status: {const: proposed}
+        usage: {$ref: '#/components/schemas/Usage'}
+
+
